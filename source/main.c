@@ -8,7 +8,7 @@
 #define	KERN_PROC_VMMAP	32	/* VM map entries for process */
 #define	KERN_PROC_PID	1	/* by process id */
 
-extern char kexec[];
+extern char kexec_data[];
 extern unsigned kexec_size;
 
 static int sock;
@@ -31,7 +31,6 @@ unsigned int long long __readmsr(unsigned long __register) {
 int kpayload(struct thread *td, struct kpayload_args* args){
 
 	//Starting kpayload...
-
 	struct ucred* cred;
 	struct filedesc* fd;
 
@@ -43,11 +42,10 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	uint8_t* kernel_ptr = (uint8_t*)kernel_base;
 	void** got_prison0 =   (void**)&kernel_ptr[0x10986a0];
 	void** got_rootvnode = (void**)&kernel_ptr[0x22c1a70];
-	
+
 	//Resolve kernel functions...
 	int (*copyout)(const void *kaddr, void *uaddr, size_t len) = (void *)(kernel_base + 0x1ea630);
 	int (*printfkernel)(const char *fmt, ...) = (void *)(kernel_base + 0x436040);
-	int (*copyin)(const void *uaddr, void *kaddr, size_t len) = (void *)(kernel_base + 0x1ea710);
 
 	cred->cr_uid = 0;
 	cred->cr_ruid = 0;
@@ -60,10 +58,10 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	//Disable write protection...
 	uint64_t cr0 = readCr0();
 	writeCr0(cr0 & ~X86_CR0_WP);
-	
+
 	//Kexec init
 	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xB1D820); // I know it's for 4.55 but I think it will works
-	memcpy(DT_HASH_SEGMENT,kexec, kexec_size);
+	memcpy(DT_HASH_SEGMENT, kexec_data, kexec_size);
 
 	void (*kexec_init)(void *, void *) = DT_HASH_SEGMENT;
 
@@ -74,7 +72,7 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 
 	printfkernel("kernel base is:0x%016llx\n", kernel_base);
 
-	uint64_t uaddr;
+	void* uaddr;
 	memcpy(&uaddr,&args[2],8);
 
 	printfkernel("uaddr is:0x%016llx\n", uaddr);
@@ -86,11 +84,12 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 
 int _main(struct thread *td) {
 
-	initKernel();	
+	initKernel();
 	initLibc();
 	initNetwork();
 	initPthread();
-
+	initSysUtil();
+	
 #ifdef DEBUG_SOCKET
 	struct sockaddr_in server;
 
@@ -110,12 +109,12 @@ int _main(struct thread *td) {
 
 	printfsocket("Starting kernel patch...\n");
 
-	int sRet = syscall(11,kpayload,td,dump);
+	syscall(11,kpayload,td,dump);
 
 	printfsocket("Kernel patched, Kexec initialized!\n");
 
 	printfsocket("Starting PS4 Linux Loader\n");
-	
+
 	usbthing();
 
 	printfsocket("Done!\n");
@@ -126,17 +125,35 @@ int _main(struct thread *td) {
 
 }
 
+void notify(char *message)
+{
+	char buffer[512];
+	sprintf(buffer, "%s\n\n\n\n\n\n\n", message);
+	sceSysUtilSendSystemNotificationWithText(0x81, buffer);
+}
+
 void usbthing()
 {
 
 	printfsocket("Open bzImage file from USB\n");
 	FILE *fkernel = fopen("/mnt/usb0/bzImage", "r");
+	if(!fkernel)
+	{
+		notify("Error: open /mnt/usb0/bzImage.");
+		return;
+	}
 	fseek(fkernel, 0L, SEEK_END);
 	int kernelsize = ftell(fkernel);
 	fseek(fkernel, 0L, SEEK_SET);
 
 	printfsocket("Open initramfs file from USB\n");
 	FILE *finitramfs = fopen("/mnt/usb0/initramfs.cpio.gz", "r");
+	if(!finitramfs)
+	{
+		notify("Error: open /mnt/usb0/initramfs.cpio.gz");
+		fclose(fkernel);
+		return;
+	}
 	fseek(finitramfs, 0L, SEEK_END);
 	int initramfssize = ftell(finitramfs);
 	fseek(finitramfs, 0L, SEEK_SET);
@@ -156,7 +173,7 @@ void usbthing()
 	char *cmd_line = "panic=0 clocksource=tsc radeon.dpm=0 console=tty0 console=ttyS0,115200n8 "
 			"console=uart8250,mmio32,0xd0340000 video=HDMI-A-1:1920x1080-24@60 "
 			"consoleblank=0 net.ifnames=0 drm.debug=0";
-	
+
 	kernel = malloc(kernelsize);
 	initramfs = malloc(initramfssize);
 
