@@ -46,7 +46,12 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	//Resolve kernel functions...
 	int (*copyout)(const void *kaddr, void *uaddr, size_t len) = (void *)(kernel_base + 0x1ea630);
 	int (*printfkernel)(const char *fmt, ...) = (void *)(kernel_base + 0x436040);
-
+	int (*set_nclk_mem_spd)(int val) = (void *)(kernel_base + 0x30C270);
+	int (*set_pstate)(int val) = (void *)(kernel_base + 0x4CC8A0);
+	int (*set_gpu_freq)(int cu, unsigned int freq) = (void *)(kernel_base + 0x4D2530);
+	int (*update_vddnp)(unsigned int cu) = (void *)(kernel_base + 0x4D2AA0);
+	int (*set_cu_power_gate)(unsigned int cu) = (void *)(kernel_base + 0x4D2C40);
+	
 	cred->cr_uid = 0;
 	cred->cr_ruid = 0;
 	cred->cr_rgid = 0;
@@ -54,10 +59,28 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 
 	cred->cr_prison = *got_prison0;
 	fd->fd_rdir = fd->fd_jdir = *got_rootvnode;
-
+	
+	//CLK, CU, ..
+	set_nclk_mem_spd(8);
+	set_pstate(3);
+	set_nclk_mem_spd(8);
+	
+	set_gpu_freq(0, 800); // ACLK
+	set_gpu_freq(1, 674); //
+	set_gpu_freq(2, 610);
+	set_gpu_freq(3, 800);
+	set_gpu_freq(4, 800);
+	set_gpu_freq(5, 720);
+	set_gpu_freq(6, 720);
+	
+	update_vddnp(0x12);
+	set_cu_power_gate(0x12);
+	
 	//Disable write protection...
 	uint64_t cr0 = readCr0();
 	writeCr0(cr0 & ~X86_CR0_WP);
+	
+	kernel_ptr[0x10D97E] = 3; //5.05 pstate when shutdown
 
 	//Kexec init
 	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xB1D820); // I know it's for 4.55 but I think it will works
@@ -170,9 +193,9 @@ void usbthing()
 	}
 
 	void *kernel, *initramfs;
-	char *cmd_line = "panic=0 clocksource=tsc radeon.dpm=0 console=tty0 console=ttyS0,115200n8 "
-			"console=uart8250,mmio32,0xd0340000 video=HDMI-A-1:1920x1080-24@60 "
-			"consoleblank=0 net.ifnames=0 drm.debug=0";
+	char *cmd_line = "panic=0 clocksource=tsc console=tty0 console=ttyS0,115200n8 "
+			"console=uart8250,mmio32,0xd0340000 drm_kms_helper.edid_firmware=edid/my_edid.bin "
+			"consoleblank=0 net.ifnames=0 drm.debug=0 amdgpu.dpm=0";
 
 	kernel = malloc(kernelsize);
 	initramfs = malloc(initramfssize);
