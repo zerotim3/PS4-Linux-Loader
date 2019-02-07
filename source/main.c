@@ -61,7 +61,6 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	fd->fd_rdir = fd->fd_jdir = *got_rootvnode;
 	
 	//CLK, CU, ..
-	set_nclk_mem_spd(8);
 	set_pstate(3);
 	set_nclk_mem_spd(8);
 	
@@ -193,8 +192,13 @@ void usbthing()
 	}
 
 	void *kernel, *initramfs;
+	
+	/* if you want edid loading add this cmd:
+		drm_kms_helper.edid_firmware=edid/my_edid.bin
+	*/
+	
 	char *cmd_line = "panic=0 clocksource=tsc console=tty0 console=ttyS0,115200n8 "
-			"console=uart8250,mmio32,0xd0340000 drm_kms_helper.edid_firmware=edid/my_edid.bin "
+			"console=uart8250,mmio32,0xd0340000 video=HDMI-A-1:1920x1080-24@60 "
 			"consoleblank=0 net.ifnames=0 drm.debug=0 amdgpu.dpm=0";
 
 	kernel = malloc(kernelsize);
