@@ -1,7 +1,5 @@
 # PS4 Linux Loader
-A simple payload that let you run Linux on your 4.05 PS4
-
-WORKS! With [IDC's exploit](https://github.com/idc/ps4-entrypoint-405).
+A simple payload that let you run Linux on your 4.55 PS4
 
 Hosted here for your use: http://darbness.com/ps4.
 
