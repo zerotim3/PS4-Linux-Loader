@@ -1,5 +1,5 @@
 # PS4 Linux Loader
-A simple payload that let you run Linux on your 4.55 PS4
+A simple payload that let you run Linux on your 6.72 PS4
 
 Hosted here for your use: http://darbness.com/ps4.
 
