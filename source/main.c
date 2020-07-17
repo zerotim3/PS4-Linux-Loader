@@ -82,7 +82,7 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	kernel_ptr[0x20734E] = 3; //6.72 pstate when shutdown
 
 	//Kexec init
-	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xB1D820); // I know it's for 4.55 but I think it will works, not sure about this one on 6.72
+	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xC00468); // thanks pablo
 	memcpy(DT_HASH_SEGMENT, kexec_data, kexec_size);
 
 	void (*kexec_init)(void *, void *) = DT_HASH_SEGMENT;
