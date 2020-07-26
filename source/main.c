@@ -82,12 +82,12 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	kernel_ptr[0x20734E] = 3; //6.72 pstate when shutdown
 
 	//Kexec init
-	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xC00468); // thanks pablo
+	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xC00468); // I know it's for 4.55 but I think it will works
 	memcpy(DT_HASH_SEGMENT, kexec_data, kexec_size);
 
 	void (*kexec_init)(void *, void *) = DT_HASH_SEGMENT;
 
-	kexec_init((void *)(kernel_base+0x123280), NULL); // this leads to printf? ok then
+	kexec_init((void *)(kernel_base+0x123280), NULL);
 
 	// Say hello and put the kernel base in userland to we can use later
 	printfkernel("PS4 Linux Loader for 6.72 by valentinbreiz\n");
@@ -197,9 +197,7 @@ void usbthing()
 		drm_kms_helper.edid_firmware=edid/my_edid.bin
 	*/
 	
-	char *cmd_line = "panic=0 clocksource=tsc console=tty0 console=ttyS0,115200n8 "
-			"console=uart8250,mmio32,0xd0340000 video=HDMI-A-1:1920x1080-24@60 "
-			"consoleblank=0 net.ifnames=0 drm.debug=0 amdgpu.dpm=0";
+	char *cmd_line = "drm.edid_firmware=edid/1920x1080.bin panic=0 clocksources=tsc";
 
 	kernel = malloc(kernelsize);
 	initramfs = malloc(initramfssize);
