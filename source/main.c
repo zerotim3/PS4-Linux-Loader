@@ -79,7 +79,7 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	uint64_t cr0 = readCr0();
 	writeCr0(cr0 & ~X86_CR0_WP);
 	
-	kernel_ptr[0x1D4BDE] = 3; //6.02 pstate when shutdown
+	kernel_ptr[0x1D4BDE] = 3; //5.05 pstate when shutdown
 
 	//Kexec init
 	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xBFB890); // I know it's for 4.55 but I think it will works
@@ -90,7 +90,7 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	kexec_init((void *)(kernel_base+0x307DF0), NULL);
 
 	// Say hello and put the kernel base in userland to we can use later
-	printfkernel("PS4 Linux Loader for 6.02 by valentinbreiz\n");
+	printfkernel("PS4 Linux Loader for 5.05 by valentinbreiz\n");
 
 	printfkernel("kernel base is:0x%016llx\n", kernel_base);
 
