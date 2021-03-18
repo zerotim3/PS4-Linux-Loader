@@ -40,17 +40,19 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	//Reading kernel_base...
 	void* kernel_base = &((uint8_t*)__readmsr(0xC0000082))[-KERN_XFAST_SYSCALL];
 	uint8_t* kernel_ptr = (uint8_t*)kernel_base;
-	void** got_prison0 =   (void**)&kernel_ptr[0x113E398];
-	void** got_rootvnode = (void**)&kernel_ptr[0x22C5750];
+	void** got_prison0 =   (void**)&kernel_ptr[0x113B728];
+	void** got_rootvnode = (void**)&kernel_ptr[0x1B463E0];
 
 	//Resolve kernel functions...
-	int (*copyout)(const void *kaddr, void *uaddr, size_t len) = (void *)(kernel_base + 0x02F140);
-	int (*printfkernel)(const char *fmt, ...) = (void *)(kernel_base + 0x0BC730);
-	int (*set_nclk_mem_spd)(int val) = (void *)(kernel_base + 0x3F1EE0);
-	int (*set_pstate)(int val) = (void *)(kernel_base + 0x4EF6C0);
-	int (*set_gpu_freq)(int cu, unsigned int freq) = (void *)(kernel_base + 0x4F5350);
-	int (*update_vddnp)(unsigned int cu) = (void *)(kernel_base + 0x4F5910);
-	int (*set_cu_power_gate)(unsigned int cu) = (void *)(kernel_base + 0x4F5D20);
+	int (*copyout)(const void *kaddr, void *uaddr, size_t len) = (void *)(kernel_base + 0x28F900);
+	int (*printfkernel)(const char *fmt, ...) = (void *)(kernel_base + 0x26F740);
+	int (*set_nclk_mem_spd)(int val) = (void *)(kernel_base + 0x29E8C0);
+	int (*set_pstate)(int val) = (void *)(kernel_base + 0x4D2720);
+	
+	// gpu_freq function kernel offset is different from one in 7.02, might cause a kpanic?
+	int (*set_gpu_freq)(int cu, unsigned int freq) = (void *)(kernel_base + 0x4F7AF0);
+	int (*update_vddnp)(unsigned int cu) = (void *)(kernel_base + 0x4F80C0);
+	int (*set_cu_power_gate)(unsigned int cu) = (void *)(kernel_base + 0x4F84D0);
 	
 	cred->cr_uid = 0;
 	cred->cr_ruid = 0;
@@ -79,15 +81,15 @@ int kpayload(struct thread *td, struct kpayload_args* args){
 	uint64_t cr0 = readCr0();
 	writeCr0(cr0 & ~X86_CR0_WP);
 	
-	kernel_ptr[0x2CDD6E] = 3; //5.05 pstate when shutdown
+	kernel_ptr[0x0D2ED0] = 3; //5.05 pstate when shutdown
 
 	//Kexec init
-	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xB1D820); // I know it's for 4.55 but I think it will works
+	void *DT_HASH_SEGMENT = (void *)(kernel_base+ 0xD19F20);
 	memcpy(DT_HASH_SEGMENT, kexec_data, kexec_size);
 
 	void (*kexec_init)(void *, void *) = DT_HASH_SEGMENT;
 
-	kexec_init((void *)(kernel_base+0x0BC730), NULL);
+	kexec_init((void *)(kernel_base+0x26F740), NULL);
 
 	// Say hello and put the kernel base in userland to we can use later
 	printfkernel("PS4 Linux Loader for 7.02 by valentinbreiz\n");
